@@ -1,20 +1,17 @@
-// db.js
-
 const { Pool } = require('pg');
+require('dotenv').config();
 
-// Replace with your actual database credentials
+// Use connectionString because it's the easiest way to connect to Neon
 const pool = new Pool({
-  user: 'postgres',
-  host: 'localhost',
-  database: 'no_bed_syndrome_db',
-  password: '    ',
-  port: 5432, 
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false // REQUIRED for Neon/Render cloud connections
+  }
 });
 
-// A simple function to execute queries
 const query = (text, params) => pool.query(text, params);
 
-console.log('Database pool initialized.');
+console.log('Database pool initialized using cloud configuration.');
 
 module.exports = {
   query,
