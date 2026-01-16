@@ -112,4 +112,24 @@ router.post('/transfer', authMiddleware, async (req, res) => {
     }
 });
 
+// 5. DELETE BED (Admin only) - ensure no admissions exist for the bed
+router.delete('/:bedId', authMiddleware, async (req, res) => {
+    const { bedId } = req.params;
+    if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Forbidden' });
+
+    try {
+        const admCheck = await query('SELECT COUNT(*) AS cnt FROM admissions WHERE bed_id = $1', [bedId]);
+        const count = parseInt(admCheck.rows[0]?.cnt || '0', 10);
+        if (count > 0) {
+            return res.status(400).json({ error: 'Cannot delete bed: admission records exist for this bed. Please remove admissions first.' });
+        }
+
+        await query('DELETE FROM beds WHERE bed_id = $1', [bedId]);
+        res.json({ message: 'Bed deleted successfully.' });
+    } catch (err) {
+        console.error('Error deleting bed:', err);
+        res.status(500).json({ error: 'Cannot delete bed. Server error.' });
+    }
+});
+
 module.exports = router;
