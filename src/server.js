@@ -23,7 +23,7 @@ const PORT = process.env.PORT || 3000;
 // --- 1. Middleware ---
 app.use(cors({
     // Replace with your Vercel URL after deployment for extra security
-    origin: process.env.FRONTEND_URL || '*', 
+    origin: ['https://nbs-tracker-frontend.vercel.app/', 'http://localhost:3000'], 
     methods: ['GET', 'POST', 'PATCH', 'DELETE']
 })); 
 app.use(express.json()); 
