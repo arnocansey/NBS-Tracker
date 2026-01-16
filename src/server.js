@@ -1,52 +1,77 @@
-// server.js
-
 const express = require('express');
 const cors = require('cors'); 
 const path = require('path');
 const { Pool } = require('pg');
 require('dotenv').config();
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+// Initialize DB Pool
+const pool = new Pool({ 
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false } // Required for most cloud DBs like Render/Neon
+});
 
 const bedsRouter = require('./routes/beds.routes');
 const authRouter = require('./routes/auth.routes');
 const transferRouter = require('./routes/transfer.routes');
 
 const app = express();
-const PORT = 3000;
+
+// Use dynamic port for Render deployment
+const PORT = process.env.PORT || 3000;
 
 // --- 1. Middleware ---
-app.use(cors()); 
+app.use(cors({
+    // Replace with your Vercel URL after deployment for extra security
+    origin: process.env.FRONTEND_URL || '*', 
+    methods: ['GET', 'POST', 'PATCH', 'DELETE']
+})); 
 app.use(express.json()); 
 
-// --- 2. API Routes ---
-// These must come BEFORE the static file serving
+// --- 2. Health Check (Requested) ---
+// Use this to verify DB connection without loading the whole UI
+app.get('/api/v1/health', async (req, res) => {
+    try {
+        const dbCheck = await pool.query('SELECT NOW()');
+        res.status(200).json({
+            status: 'UP',
+            database: 'CONNECTED',
+            server_time: dbCheck.rows[0].now,
+            environment: process.env.NODE_ENV || 'development'
+        });
+    } catch (err) {
+        res.status(500).json({ 
+            status: 'DOWN', 
+            database: 'CONNECTION_ERROR', 
+            error: err.message 
+        });
+    }
+});
+
+// --- 3. API Routes ---
 app.use('/api/v1/transfers', transferRouter);
 app.use('/api/v1/beds', bedsRouter);
 app.use('/api/v1/auth', authRouter);
 
-// --- 3. Static Files ---
-// Tell Express where your React build lives
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
+// --- 4. Static Files & SPA Routing ---
+// Serve the built React files from the dist folder
+const frontendBuildPath = path.join(__dirname, '../frontend/dist');
+app.use(express.static(frontendBuildPath));
 
-// --- 4. The Catch-All ---
-// REMOVE the app.get('/') text response. 
-// This named wildcard handles the root (/) AND refreshes (/dashboard)
-// Catch-all middleware: serve frontend index for non-API requests
-app.use((req, res, next) => {
-    // Skip API routes
-    if (req.path && req.path.startsWith('/api/')) return next();
-
-    const indexPath = path.join(__dirname, '../frontend/dist/index.html');
-    if (require('fs').existsSync(indexPath)) {
-        return res.sendFile(indexPath);
+// Catch-all: If a route doesn't match an API or static file, serve index.html
+// This allows React Router (e.g., /dashboard) to work on page refresh
+app.get('*', (req, res) => {
+    if (req.path.startsWith('/api/')) {
+        return res.status(404).json({ error: 'API route not found' });
     }
-
-    // If frontend build missing, continue to next middleware (or 404)
-    next();
+    res.sendFile(path.join(frontendBuildPath, 'index.html'), (err) => {
+        if (err) {
+            res.status(500).send("Frontend build not found. Ensure you ran 'npm run build'.");
+        }
+    });
 });
 
 // --- Start Server ---
 app.listen(PORT, () => {
-    console.log(`🚀 Server is running on http://localhost:${PORT}`);
-    console.log('✅ API and Frontend ready for Command Center operations.');
+    console.log(`🚀 NBS Tracker Server running on port ${PORT}`);
+    console.log(`🏥 Health Check: http://localhost:${PORT}/api/v1/health`);
 });
