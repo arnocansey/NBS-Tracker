@@ -22,9 +22,10 @@ const PORT = process.env.PORT || 3000;
 
 // --- 1. Middleware ---
 app.use(cors({
-    // Replace with your Vercel URL after deployment for extra security
-    origin: '*', 
-    methods: ['GET', 'POST', 'PATCH', 'DELETE']
+  // Use a wildcard temporarily to prove it's a CORS issue
+  origin: '*', 
+  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 })); 
 app.use(express.json()); 
 
