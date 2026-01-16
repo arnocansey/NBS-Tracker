@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors'); 
 const path = require('path');
+const fs = require('fs');
 const { Pool } = require('pg');
 require('dotenv').config();
 
@@ -58,14 +59,18 @@ const frontendBuildPath = path.join(__dirname, '../frontend/dist');
 app.use(express.static(frontendBuildPath));
 
 // Catch-all: If a route doesn't match an API or static file, serve index.html
-// This allows React Router (e.g., /dashboard) to work on page refresh
-app.get('*', (req, res) => {
-    if (req.path.startsWith('/api/')) {
-        return res.status(404).json({ error: 'API route not found' });
-    }
-    res.sendFile(path.join(frontendBuildPath, 'index.html'), (err) => {
+// Use a middleware (not a route with '*') to avoid path-to-regexp parsing issues
+app.use((req, res, next) => {
+    // Only handle GET requests that are not API calls
+    if (req.method !== 'GET' || req.path.startsWith('/api/')) return next();
+
+    const indexFile = path.join(frontendBuildPath, 'index.html');
+    if (!fs.existsSync(indexFile)) return next();
+
+    res.sendFile(indexFile, (err) => {
         if (err) {
-            res.status(500).send("Frontend build not found. Ensure you ran 'npm run build'.");
+            console.error('Error sending index.html', err);
+            res.status(500).send("Frontend build not found or failed to serve. Ensure you built the frontend.");
         }
     });
 });
