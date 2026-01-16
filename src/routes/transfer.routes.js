@@ -80,14 +80,31 @@ router.patch('/:id', authMiddleware, async (req, res) => {
             return res.status(404).json({ error: 'Request not found.' });
         }
 
-        // 2. AUTOMATION: If approved and a bed is assigned, mark that bed as OCCUPIED
+        // 2. AUTOMATION: If approved and a bed is assigned, transfer the patient:
+        // - Close any active admission for this patient (source bed) -> mark source bed CLEANING
+        // - Insert new admission for target bed -> mark target bed OCCUPIED
         if (new_status === 'APPROVED' && assigned_bed_id) {
-            const updateBedSql = `
-                UPDATE beds 
-                SET current_status = 'OCCUPIED', last_updated_at = NOW() 
-                WHERE bed_id = $1;
-            `;
-            await query(updateBedSql, [assigned_bed_id]);
+            const request = requestResult.rows[0];
+            const patientName = request.patient_name;
+
+            // Find active admission (source bed) for this patient, if any
+            const srcAdmRes = await query(
+                'SELECT bed_id FROM admissions WHERE patient_name = $1 AND discharged_at IS NULL LIMIT 1',
+                [patientName]
+            );
+
+            if (srcAdmRes.rows.length > 0) {
+                const sourceBedId = srcAdmRes.rows[0].bed_id;
+                // Close the admission
+                await query('UPDATE admissions SET discharged_at = NOW() WHERE bed_id = $1 AND discharged_at IS NULL', [sourceBedId]);
+                // Mark source bed as CLEANING
+                await query("UPDATE beds SET current_status = 'CLEANING' WHERE bed_id = $1", [sourceBedId]);
+            }
+
+            // Create a new admission record for the assigned bed
+            await query('INSERT INTO admissions (patient_name, bed_id, admitted_at) VALUES ($1, $2, NOW())', [patientName, assigned_bed_id]);
+            // Mark the assigned bed as OCCUPIED
+            await query("UPDATE beds SET current_status = 'OCCUPIED' WHERE bed_id = $1", [assigned_bed_id]);
         }
 
         await query('COMMIT'); // Save changes
