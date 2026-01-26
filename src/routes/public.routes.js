@@ -15,7 +15,7 @@ router.get('/hospitals', async (req, res) => {
                 h.id, 
                 h.name, 
                 h.location,
-                COUNT(b.bed_id) FILTER (WHERE b.current_status = 'available') as available_beds
+                COUNT(b.bed_id) FILTER (WHERE b.current_status = 'AVAILABLE') as available_beds
             FROM hospitals h
             LEFT JOIN beds b ON h.id = b.hospital_id
             GROUP BY h.id
@@ -37,7 +37,7 @@ router.get('/hospitals/:id/availability', async (req, res) => {
             SELECT 
                 ward_name, 
                 COUNT(*) as total_beds,
-                COUNT(*) FILTER (WHERE bed_status = 'available') as available_beds
+                COUNT(*) FILTER (WHERE LOWER(current_status) = 'AVAILABLE') as available_beds
             FROM beds 
             WHERE hospital_id = $1
             GROUP BY ward_name;
@@ -45,7 +45,7 @@ router.get('/hospitals/:id/availability', async (req, res) => {
         const result = await pool.query(query, [id]);
         res.json(result.rows);
     } catch (err) {
-        console.error(err.message);
+        console.error("DATABASE ERROR: ",err.message);
         res.status(500).send("Server Error");
     }
 });
