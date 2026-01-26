@@ -1,7 +1,5 @@
 const express = require('express');
 const cors = require('cors'); 
-const path = require('path');
-const fs = require('fs');
 const { Pool } = require('pg');
 require('dotenv').config();
 
@@ -56,28 +54,6 @@ app.use('/api/v1/public', publicRoutes);
 app.use('/api/v1/transfers', transferRouter);
 app.use('/api/v1/beds', bedsRouter);
 app.use('/api/v1/auth', authRouter);
-
-// --- 4. Static Files & SPA Routing ---
-// Serve the built React files from the dist folder
-const frontendBuildPath = path.join(__dirname, '../frontend/dist');
-app.use(express.static(frontendBuildPath));
-
-// Catch-all: If a route doesn't match an API or static file, serve index.html
-// Use a middleware (not a route with '*') to avoid path-to-regexp parsing issues
-app.use((req, res, next) => {
-    // Only handle GET requests that are not API calls
-    if (req.method !== 'GET' || req.path.startsWith('/api/')) return next();
-
-    const indexFile = path.join(frontendBuildPath, 'index.html');
-    if (!fs.existsSync(indexFile)) return next();
-
-    res.sendFile(indexFile, (err) => {
-        if (err) {
-            console.error('Error sending index.html', err);
-            res.status(500).send("Frontend build not found or failed to serve. Ensure you built the frontend.");
-        }
-    });
-});
 
 // --- Start Server ---
 app.listen(PORT, () => {
