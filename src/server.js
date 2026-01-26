@@ -14,6 +14,7 @@ const pool = new Pool({
 const bedsRouter = require('./routes/beds.routes');
 const authRouter = require('./routes/auth.routes');
 const transferRouter = require('./routes/transfer.routes');
+const publicRoutes = require('./routes/public.routes');
 
 const app = express();
 
@@ -24,7 +25,7 @@ const PORT = process.env.PORT || 3000;
 app.use(cors({
   // Use a wildcard temporarily to prove it's a CORS issue
   origin: '*', 
-  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS' , 'PUT'],
   allowedHeaders: ['Content-Type', 'Authorization']
 })); 
 app.use(express.json()); 
@@ -49,7 +50,9 @@ app.get('/api/v1/health', async (req, res) => {
     }
 });
 
+
 // --- 3. API Routes ---
+app.use('/api/v1/public', publicRoutes);
 app.use('/api/v1/transfers', transferRouter);
 app.use('/api/v1/beds', bedsRouter);
 app.use('/api/v1/auth', authRouter);
