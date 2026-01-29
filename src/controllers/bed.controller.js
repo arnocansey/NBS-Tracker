@@ -1,5 +1,6 @@
 // backend/src/controllers/bed.controller.js
 const pool = require('../config/db'); // Ensure this points to your database connection file
+const { getIO } = require('../websockets');
 
 const bedController = {
     // 1. Create a New Bed (Called by AddBedForm)
@@ -15,6 +16,7 @@ const bedController = {
             const values = [ward_name, specialty_type, current_status || 'AVAILABLE'];
             const result = await pool.query(query, values);
             
+            getIO().emit('beds_updated'); // Emit event
             res.status(201).json(result.rows[0]);
         } catch (err) {
             console.error('Error creating bed:', err);
@@ -61,6 +63,7 @@ const bedController = {
                 return res.status(404).json({ error: 'Bed not found' });
             }
 
+            getIO().emit('beds_updated'); // Emit event
             res.json(result.rows[0]);
         } catch (err) {
             console.error('Error updating status:', err);
@@ -73,6 +76,7 @@ const bedController = {
         const { id } = req.params;
         try {
             await pool.query('DELETE FROM beds WHERE bed_id = $1', [id]);
+            getIO().emit('beds_updated'); // Emit event
             res.json({ message: 'Bed deleted successfully' });
         } catch (err) {
             console.error('Error deleting bed:', err);

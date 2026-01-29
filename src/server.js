@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors'); 
 const { Pool } = require('pg');
+const http = require('http');
+const { init: initWebSockets } = require('./websockets');
 require('dotenv').config();
 
 // Initialize DB Pool
@@ -13,8 +15,13 @@ const bedsRouter = require('./routes/beds.routes');
 const authRouter = require('./routes/auth.routes');
 const transferRouter = require('./routes/transfer.routes');
 const publicRoutes = require('./routes/public.routes');
+const analyticsRouter = require('./routes/analytics.routes');
 
 const app = express();
+const server = http.createServer(app); // Create HTTP server from Express app
+
+// Initialize WebSockets
+initWebSockets(server);
 
 // Use dynamic port for Render deployment
 const PORT = process.env.PORT || 3000;
@@ -54,9 +61,10 @@ app.use('/api/v1/public', publicRoutes);
 app.use('/api/v1/transfers', transferRouter);
 app.use('/api/v1/beds', bedsRouter);
 app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/analytics', analyticsRouter);
 
 // --- Start Server ---
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`🚀 NBS Tracker Server running on port ${PORT}`);
     console.log(`🏥 Health Check: http://localhost:${PORT}/api/v1/health`);
 });
