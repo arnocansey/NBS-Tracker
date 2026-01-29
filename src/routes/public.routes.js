@@ -47,7 +47,7 @@ router.get('/hospitals', async (req, res) => {
         const result = await pool.query(query);
         const hospitals = result.rows.map(h => ({ ...h, wards: h.wards || [] }));
         res.json(hospitals);
-    } catch (err) => {
+    } catch (err) {
         console.error(err.message);
         res.status(500).send("Server Error");
     }
