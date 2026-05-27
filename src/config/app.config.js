@@ -1,11 +1,15 @@
 require('dotenv').config();
 
 const parseOrigins = (value) => {
-  if (!value) return ['http://localhost:3001'];
-  return value
+  const defaults = ['http://localhost:3001', 'http://127.0.0.1:3001'];
+  const configured = value
+    ? value
     .split(',')
     .map((origin) => origin.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    : [];
+
+  return Array.from(new Set([...defaults, ...configured]));
 };
 
 module.exports = {

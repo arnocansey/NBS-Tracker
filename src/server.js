@@ -21,7 +21,7 @@ initWebSockets(server);
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || config.corsOrigins.includes(origin)) return callback(null, true);
-    return callback(new Error('Not allowed by CORS'));
+    return callback(null, false);
   },
   methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS', 'PUT'],
   allowedHeaders: ['Content-Type', 'Authorization'],
