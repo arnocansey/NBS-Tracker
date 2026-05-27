@@ -5,11 +5,37 @@ ALTER TABLE hospitals
   ADD COLUMN IF NOT EXISTS phone TEXT,
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'hospitals'
+      AND column_name = 'contact_number'
+  ) THEN
+    EXECUTE 'UPDATE hospitals SET phone = COALESCE(phone, contact_number) WHERE phone IS NULL';
+  END IF;
+END $$;
+
 ALTER TABLE beds
   ADD COLUMN IF NOT EXISTS bed_number TEXT,
   ADD COLUMN IF NOT EXISTS hospital_id INTEGER REFERENCES hospitals(id),
   ADD COLUMN IF NOT EXISTS cleaning_started_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'beds'
+      AND column_name = 'last_updated_at'
+  ) THEN
+    EXECUTE 'UPDATE beds SET updated_at = COALESCE(updated_at, last_updated_at, NOW())';
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_beds_status_cleaning_started
   ON beds (current_status, cleaning_started_at);
@@ -45,6 +71,32 @@ CREATE TABLE IF NOT EXISTS bed_history (
   notes TEXT,
   timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE bed_history
+  ADD COLUMN IF NOT EXISTS history_id INTEGER,
+  ADD COLUMN IF NOT EXISTS from_status TEXT,
+  ADD COLUMN IF NOT EXISTS to_status TEXT,
+  ADD COLUMN IF NOT EXISTS notes TEXT;
+
+CREATE SEQUENCE IF NOT EXISTS bed_history_history_id_seq;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'bed_history'
+      AND column_name = 'id'
+  ) THEN
+    EXECUTE 'UPDATE bed_history SET history_id = COALESCE(history_id, id) WHERE history_id IS NULL';
+  ELSE
+    EXECUTE 'UPDATE bed_history SET history_id = nextval(''bed_history_history_id_seq'') WHERE history_id IS NULL';
+  END IF;
+END $$;
+
+ALTER TABLE bed_history
+  ALTER COLUMN history_id SET DEFAULT nextval('bed_history_history_id_seq');
 
 CREATE INDEX IF NOT EXISTS idx_bed_history_bed_timestamp
   ON bed_history (bed_id, timestamp DESC);
