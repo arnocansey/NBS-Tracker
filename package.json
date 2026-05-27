@@ -4,8 +4,9 @@
   "description": "",
   "main": "src/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "check": "node --check src/server.js && node --check src/routes/beds.routes.js && node --check src/routes/transfer.routes.js && node --check src/routes/auth.routes.js && node --check src/routes/hospitals.routes.js && node --check src/controllers/analytics.controller.js",
+    "test": "npm run check"
   },
   "keywords": [],
   "author": "",

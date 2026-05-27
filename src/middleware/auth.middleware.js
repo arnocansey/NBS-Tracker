@@ -1,8 +1,7 @@
 // backend/src/middleware/auth.middleware.js
 
 const jwt = require('jsonwebtoken');
-
-const JWT_SECRET = 'YOUR_SUPER_SECURE_JWT_SECRET_KEY'; // Must match the secret in auth.routes.js
+const config = require('../config/app.config');
 
 const authMiddleware = (req, res, next) => {
     // 1. Get the token from the Authorization header (e.g., "Bearer TOKEN")
@@ -15,7 +14,7 @@ const authMiddleware = (req, res, next) => {
 
     try {
         // 2. Verify and decode the token
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, config.jwtSecret);
         
         // 3. Attach user info to the request object for use in the route handler
         req.user = decoded; 

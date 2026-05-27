@@ -13,4 +13,10 @@ router.get(
     analyticsController.getOccupancyByHospital
 );
 
+router.get(
+    '/operations-summary',
+    authMiddleware,
+    analyticsController.getOperationsSummary
+);
+
 module.exports = router;
